@@ -9,6 +9,6 @@ class GreeterTest {
 
     @Test
     void greets_in_upper_case() {
-        assertThat(new Greeter(Locale.ROOT).greet("olivier")).isEqualTo("Hello, OLIVIER");
+        assertThat(new Greeter(Locale.ROOT).greet("world")).isEqualTo("Hello, WORLD");
     }
 }

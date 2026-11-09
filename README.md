@@ -301,6 +301,69 @@ leave no trace in bytecode and so always look unused, and the JUnit artifacts,
 because depending on the `junit-jupiter` aggregate while importing from
 `junit-jupiter-api` is the idiomatic usage.
 
+## Full and fast builds
+
+A bare `./mvnw` runs `clean verify`, the full build: every gate above, the tests
+and the dependency analysis. `verify` rather than `install`, so nothing lands in
+`~/.m2` unless another project needs it.
+
+`-Pfast` is for the edit-compile loop:
+
+```bash
+./mvnw -Pfast
+```
+
+It skips the tests (not even compiling them), Checkstyle, the dependency
+analysis, Error Prone and NullAway. javac still runs with `-Xlint:all -Werror`,
+Spotless still formats and the enforcer still checks the build. Run the full
+build before pushing; CI does.
+
+A release always gets the full build: `-Prelease -Pfast` fails at `validate`.
+
+## Running the tests on another JDK
+
+```bash
+./mvnw -Dtest.jdk=21
+```
+
+Everything compiles with the JDK running Maven; surefire and failsafe run the
+tests on the JDK 21 toolchain. That is the only way a library whose
+`java.release` is older than the build JDK ever runs its tests on the oldest JDK
+it supports. Without the property, tests run on the JDK running Maven.
+
+The JDK must be declared in `~/.m2/toolchains.xml`:
+
+```xml
+<toolchains>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>21</version>
+    </provides>
+    <configuration>
+      <jdkHome>/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home</jdkHome>
+    </configuration>
+  </toolchain>
+</toolchains>
+```
+
+On GitHub Actions, `actions/setup-java` writes that file for every JDK it
+installs, so list both:
+
+```yaml
+- uses: actions/setup-java@v6
+  with:
+    distribution: temurin
+    java-version: |
+      21
+      25
+- run: ./mvnw -B -Dtest.jdk=21
+```
+
+The last version listed is the one running Maven. Maven activates profiles from
+`-D` properties only, so `test.jdk` cannot be set in a POM. A JDK older than
+`java.release` fails with `UnsupportedClassVersionError`.
+
 ## Turning off an Error Prone check
 
 Error Prone runs with `-Werror`, so a check that fights a project's conventions
@@ -427,12 +490,18 @@ palantir emits is the house style.
 | `visibilitymodifier-ignored-annotations` | builds green — a package-private field exempted through the property |
 | `snapshot-sibling` | builds green — a reactor module depending on its `-SNAPSHOT` sibling |
 | `javadoc-extra-args` | builds green — a custom block tag registered through the property |
+| `default-goal` | builds green with no goal given, and its log shows `clean` and `verify` ran |
+| `test-jdk` | builds green with `-Dtest.jdk`, and its log shows surefire used the toolchain |
+| `fast-skips-tests` | **fails** on a failing test, then builds green with `-Pfast` |
+| `fast-skips-checkstyle` | **fails** on a magic number, then builds green with `-Pfast` |
+| `fast-skips-errorprone` | **fails** on a NullAway error, then builds green with `-Pfast` |
+| `fast-skips-dependency-analysis` | **fails** on an unused dependency, then builds green with `-Pfast` |
+| `fast-release` | builds green with `-Prelease`, then **fails** with `-Prelease -Pfast` |
 | `checkstyle-violation` | **fails** — magic number |
 | `nullaway-violation` | **fails** — null passed where non-null required |
 | `errorprone-extra-args-absent` | **fails** — same sources, without the property |
 | `checkstyle-suppresswarnings-absent` | **fails** — same switch, without the annotation |
 | `visibilitymodifier-ignored-annotations-absent` | **fails** — same field, without the property |
-
 | `javadoc-extra-args-absent` | **fails** — same tag, without the property |
 
 The failing projects are the point: if a gate ever stops enforcing, its

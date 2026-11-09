@@ -75,6 +75,10 @@
          names, for fields that generated code or a framework must reach. -->
     <checkstyle.visibility.ignoredAnnotations></checkstyle.visibility.ignoredAnnotations>
 
+    <!-- Set by the fast profile, so the release profile can refuse to run with
+         it. Not a knob. -->
+    <imgn.fast.build>false</imgn.fast.build>
+
     <!-- Version of this POM's own "config" jar, which carries the Checkstyle
          ruleset. It must equal <version> above, and ${project.version}
          cannot be used: in an inherited plugin dependency that expression resolves
@@ -193,6 +197,10 @@
   </dependencyManagement>
 
   <build>
+
+    <!-- A bare ./mvnw runs the full build. verify rather than install: nothing
+         lands in ~/.m2 unless another project needs it. -->
+    <defaultGoal>clean verify</defaultGoal>
 
     <!-- inherited=false: these two build THIS POM's "config" jar from
          src/main/resources. Children must not try to build one of their own. -->
@@ -800,6 +808,80 @@
       </properties>
     </profile>
 
+    <!-- -Pfast: the edit-compile loop. No tests, no Error Prone or NullAway, no
+         Checkstyle, no dependency analysis; javac still runs with -Xlint:all
+         -Werror, Spotless still formats and the enforcer still checks the build.
+         The default build runs everything, and a release refuses to run with
+         this profile. -->
+    <profile>
+      <id>fast</id>
+      <properties>
+        <imgn.fast.build>true</imgn.fast.build>
+        <!-- Not skipTests: test sources are not even compiled. -->
+        <maven.test.skip>true</maven.test.skip>
+        <invoker.skip>true</invoker.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+        <mdep.analyze.skip>true</mdep.analyze.skip>
+      </properties>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <configuration>
+                <!-- Override rather than merge: every other argument exists only
+                     for Error Prone. -->
+                <compilerArgs combine.self="override">
+                  <arg>-Xlint:all</arg>
+                  <arg>-Werror</arg>
+                </compilerArgs>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+
+    <!-- -Dtest.jdk=21: tests run on that JDK while everything else uses the one
+         running Maven. For a library whose java.release is older than the build
+         JDK, it is the only way its tests ever meet the oldest JDK it supports.
+         The JDK must be declared in ~/.m2/toolchains.xml; setup-java writes one
+         on CI. Maven activates profiles from -D properties only, so a child
+         cannot set test.jdk in its POM. -->
+    <profile>
+      <id>test-jdk</id>
+      <activation>
+        <property>
+          <name>test.jdk</name>
+        </property>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <configuration>
+                <jdkToolchain>
+                  <version>${test.jdk}</version>
+                </jdkToolchain>
+              </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-failsafe-plugin</artifactId>
+              <configuration>
+                <jdkToolchain>
+                  <version>${test.jdk}</version>
+                </jdkToolchain>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+
     <!-- mvn -Prelease deploy, and what the Release workflow activates. -->
     <profile>
       <id>release</id>
@@ -808,6 +890,28 @@
       </properties>
       <build>
         <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-full-build</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireProperty>
+                      <property>imgn.fast.build</property>
+                      <regex>false</regex>
+                      <regexMessage>A release always gets the full build: drop -Pfast.</regexMessage>
+                    </requireProperty>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
