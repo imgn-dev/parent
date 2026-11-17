@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>be.imgn.parent</groupId>
+    <artifactId>parent</artifactId>
+    <version>@project.version@</version>
+    <relativePath/>
+  </parent>
+
+  <artifactId>javadoc-gaia-link</artifactId>
+  <version>1.0.0</version>
+
+  <name>javadoc-gaia-link</name>
+
+  <properties>
+    <gaia.version>0.1.2</gaia.version>
+    <javadoc.gaia.link>https://imgn-dev.github.io/gaia/api/${gaia.version}</javadoc.gaia.link>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>be.imgn.gaia</groupId>
+      <artifactId>gaia-core</artifactId>
+      <version>${gaia.version}</version>
+    </dependency>
+  </dependencies>
+
+</project>

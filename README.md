@@ -415,6 +415,25 @@ Same purpose as `errorprone.extra.args`: a child never has to override the
 javadoc configuration, which would discard `doclint`, `failOnWarnings` and the
 release wiring with it.
 
+## Linking the Javadoc to gaia
+
+A project whose API takes or returns gaia's types links them to gaia's published
+API documentation through `javadoc.gaia.link`, at the version it depends on:
+
+```xml
+<properties>
+  <javadoc.gaia.link>https://imgn-dev.github.io/gaia/api/${gaia.version}</javadoc.gaia.link>
+</properties>
+```
+
+Empty, the default, links nothing. It cannot default to a URL: javadoc fetches
+the link and, with `failOnWarnings`, fails when it cannot, and most projects have
+no gaia version to put in it. With a `-SNAPSHOT` gaia, the URL above does not
+exist: gaia publishes its snapshot documentation under `api/snapshot`.
+
+Modular projects only: javadoc warns when code in the unnamed module links to
+gaia's named modules. In a reactor mixing both, set it in the modular modules.
+
 ## Exempting fields from VisibilityModifier
 
 Checkstyle's `VisibilityModifier` requires private fields, except those carrying
@@ -490,6 +509,7 @@ palantir emits is the house style.
 | `visibilitymodifier-ignored-annotations` | builds green — a package-private field exempted through the property |
 | `snapshot-sibling` | builds green — a reactor module depending on its `-SNAPSHOT` sibling |
 | `javadoc-extra-args` | builds green — a custom block tag registered through the property |
+| `javadoc-gaia-link` | builds green, and its javadoc links gaia's types to gaia's published documentation |
 | `default-goal` | builds green with no goal given, and its log shows `clean` and `verify` ran |
 | `test-jdk` | builds green with `-Dtest.jdk`, and its log shows surefire used the toolchain |
 | `fast-skips-tests` | **fails** on a failing test, then builds green with `-Pfast` |

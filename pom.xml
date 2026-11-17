@@ -65,6 +65,15 @@
          -tagletpath, which this property also carries. -->
     <javadoc.extra.args></javadoc.extra.args>
 
+    <!-- The URL of gaia's published API documentation, for a child that depends
+         on gaia to link its javadoc to: empty links nothing. javadoc fetches it
+         and, with failOnWarnings, fails when it cannot, so it cannot default to
+         a URL: most children have no gaia version to put in it. Modular
+         children only: javadoc warns when code in the unnamed module links to
+         gaia's named modules.
+         Example: <javadoc.gaia.link>https://imgn-dev.github.io/gaia/api/${gaia.version}</javadoc.gaia.link> -->
+    <javadoc.gaia.link></javadoc.gaia.link>
+
     <!-- Printing to stdout/stderr is a bug everywhere except in a command-line
          tool, where it is the whole point. Such a module sets this to OFF; a
          single main method can instead use @SuppressWarnings("SystemOut"). -->
@@ -487,6 +496,9 @@
             <failOnWarnings>true</failOnWarnings>
             <notimestamp>true</notimestamp>
             <additionalOptions>${javadoc.extra.args}</additionalOptions>
+            <links>
+              <link>${javadoc.gaia.link}</link>
+            </links>
           </configuration>
         </plugin>
 
